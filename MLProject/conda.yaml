@@ -1,12 +1,11 @@
-name: eksperimen_timothy
+name: mlflow-env
 channels:
   - defaults
 dependencies:
-  - python=3.9
+  - python=3.12
   - pip
   - pip:
-    - scikit-learn
-    - pandas
     - mlflow
+    - pandas
+    - scikit-learn
     - dagshub
-    - numpy
