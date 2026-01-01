@@ -5,18 +5,15 @@ from sklearn.metrics import accuracy_score
 import mlflow
 import mlflow.sklearn
 import os
-import pickle
-
-#autentikasi dagshub
-os.environ["MLFLOW_TRACKING_USERNAME"] = "KinoVelverika"
-os.environ["MLFLOW_TRACKING_PASSWORD"] = "9dba75b0b97434ebba08b1bf99401f4cac3820cf"
+import json
+import platform
 
 #konek kedagshub
 mlflow.set_tracking_uri("https://dagshub.com/KinoVelverika/Membangun_Sistem_ML.mlflow")
 mlflow.set_experiment("Submission_Final_Workflow")
 
 #autologging
-mlflow.sklearn.autolog()
+mlflow.sklearn.autolog(log_models=False)
 
 #preprocessing data
 file_name = 'credit_risk_preprocessing.csv'
@@ -25,64 +22,67 @@ folder_path = os.path.join('Membangun_model', file_name)
 print("Mencari file dataset...")
 
 if os.path.exists(file_name):
-    df = pd.read_csv(file_name) 
+    df = pd.read_csv(file_name)
     print(f"✅ File ditemukan di: {file_name}")
 elif os.path.exists(folder_path):
-    df = pd.read_csv(folder_path) 
+    df = pd.read_csv(folder_path)
     print(f"✅ File ditemukan di: {folder_path}")
 else:
     print(f"❌ ERROR: File '{file_name}' tidak ditemukan dimanapun.")
-    print(f"Posisi terminal saat ini: {os.getcwd()}")
     exit()
-
-# Memilih Fitur & Target
-print(f"📋 Kolom tersedia: {list(df.columns)}")
 
 if 'approved' in df.columns:
     target_col = 'approved'
 elif 'loan_status' in df.columns:
     target_col = 'loan_status'
 else:
-    target_col = df.columns[-1] # Ambil kolom terakhir sebagai tebakan
-    print(f"⚠️ Warning: Target tidak dikenali. Menggunakan kolom terakhir.")
+    target_col = df.columns[-1]
 
-print(f"🎯 Target kolom yang digunakan: {target_col}")
-
-# Split Data
-try:
-    y = df[target_col]
-    X = df.drop(target_col, axis=1)
-except KeyError as e:
-    print(f"❌ ERROR KEY: {e}. Pastikan nama kolom target benar-benar ada.")
-    exit()
-
+y = df[target_col]
+X = df.drop(target_col, axis=1)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 #TRAINING LOOP
 estimators = [50, 100]
-last_model = None
 
-print("Mulai training dengan Autolog...")
+print("\nMulai training...")
 
 for n in estimators:
-    with mlflow.start_run(run_name=f"Model_RF_{n}"):
-        print(f"Training dengan {n} pohon...")
+    with mlflow.start_run(run_name=f"Advanced_Model_RF_{n}"):
+        print(f"🔄 Training dengan {n} pohon...")
         
-        # Melatih Model
         model = RandomForestClassifier(n_estimators=n, random_state=42)
         model.fit(X_train, y_train)
         
-        # Evaluasi
         acc = accuracy_score(y_test, model.predict(X_test))
-        print(f"    Selesai! Akurasi: {acc}")
+        print(f"    ✅ Selesai! Akurasi: {acc}")
+        
+        mlflow.log_metric("accuracy", acc)
 
-        last_model = model
+        # FILE MONITORING JSON (Tetap pertahankan logic Anda ini)
+        print("    📊 Membuat monitoring json...")
+        monitoring_data = {
+            "model_name": "RandomForest_CreditRisk",
+            "model_version": f"v_trees_{n}",
+            "accuracy": acc,
+            "python_version": platform.python_version(),
+            "input_features": list(X.columns),
+            "target_column": target_col
+        }
+        
+        with open("metric_info.json", "w") as f:
+            json.dump(monitoring_data, f, indent=4)
+        
+        mlflow.log_artifact("metric_info.json")
+        
+        print("    📦 Membungkus artifacts model (Auto log_model)...")
+        
+        mlflow.sklearn.log_model(
+            sk_model=model,
+            artifact_path="model",  
+            registered_model_name="CreditRiskModel_Final"
+        )
+        
+        print("    ✅ Model berhasil disimpan ke DagsHub dengan format Docker-Ready.")
 
-print("Semua proses training selesai!")
-
-#simpan model
-if last_model:
-    filename = 'model.pkl'
-    with open(filename, 'wb') as file:
-        pickle.dump(last_model, file)
-    print(f"\n✅ Model berhasil disimpan di laptop sebagai: {filename}")
+print("\n🎉 Selesai! Cek DagsHub.")
