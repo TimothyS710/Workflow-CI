@@ -9,7 +9,7 @@ import json
 import platform
 
 #konek kedagshub
-mlflow.set_tracking_uri("https://dagshub.com/KinoVelverika/Membangun_Sistem_ML.mlflow")
+mlflow.set_tracking_uri("https://dagshub.com/TimothyS710/Membangun_Sistem_ML.mlflow")
 mlflow.set_experiment("Submission_Final_Workflow")
 
 #autologging
