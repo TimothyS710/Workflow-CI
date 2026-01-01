@@ -29,18 +29,24 @@ jobs:
       run: |
         pip install mlflow dagshub pandas scikit-learn
 
-    - name: Run MLflow Project
+    # --- BAGIAN INI YANG DIUBAH AGAR AMAN ---
+    - name: Run Training Script (Direct Python)
       id: run_mlflow
       run: |
         cd MLProject
         
+        # 1. Jalankan Python langsung (Bukan 'mlflow run')
+        # Ini menjamin artifact terupload sempurna
+        python modelling.py > run_log.txt 2>&1
         
-        mlflow run . --env-manager=local > run_log.txt 2>&1
+        # 2. Tampilkan log
         cat run_log.txt
-        RUN_ID=$(grep -oP "Run \(ID '\K[a-f0-9]+" run_log.txt | tail -1)
+        
+        # 3. Tangkap ID dari print khusus 'RUN_ID_CI:' yang ada di modelling.py
+        RUN_ID=$(grep -oP "RUN_ID_CI:\K[a-f0-9]+" run_log.txt | tail -1)
         
         if [ -z "$RUN_ID" ]; then
-          echo "❌ Gagal menemukan Run ID! Coba cek pola log lagi."
+          echo "❌ Gagal menemukan Run ID!"
           exit 1
         fi
         
@@ -55,7 +61,6 @@ jobs:
 
     - name: Build & Push Docker Image
       run: |
-        
         TARGET_RUN_ID=${{ steps.run_mlflow.outputs.run_id }}
         
         echo "🐳 Building Docker for Run ID: $TARGET_RUN_ID"

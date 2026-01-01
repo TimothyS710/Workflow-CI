@@ -85,4 +85,7 @@ for n in estimators:
         
         print("    ✅ Model berhasil disimpan ke DagsHub dengan format Docker-Ready.")
 
+        current_run_id = mlflow.active_run().info.run_id
+        print(f"RUN_ID_CI:{current_run_id}")
+
 print("\n🎉 Selesai! Cek DagsHub.")
