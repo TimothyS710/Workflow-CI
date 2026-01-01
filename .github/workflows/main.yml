@@ -30,31 +30,10 @@ jobs:
         pip install mlflow dagshub pandas scikit-learn
 
     - name: Run Training Script
-      id: run_mlflow
       run: |
         cd MLProject
-        python modelling.py > run_log.txt 2>&1
-        cat run_log.txt
-        RUN_ID=$(grep -oP "RUN_ID_CI:\K[a-f0-9]+" run_log.txt | tail -1)
-        
-        if [ -z "$RUN_ID" ]; then
-          echo "Failed to find Run ID"
-          exit 1
-        fi
-        
-        echo "Run ID found: $RUN_ID"
-        echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
-
-    - name: Wait for DagsHub Sync
-      run: |
-        echo "Waiting 30s for artifact propagation..."
-        sleep 30
-
-    - name: Verify Artifacts Existence
-      env:
-        RUN_ID: ${{ steps.run_mlflow.outputs.run_id }}
-      run: |
-        mlflow artifacts list --run-id $RUN_ID
+        # Script ini sekarang akan menghasilkan folder 'model_output' secara lokal
+        python modelling.py
 
     - name: Login to Docker Hub
       uses: docker/login-action@v2
@@ -62,11 +41,15 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build & Push Docker Image
+    - name: Build & Push Docker Image (From Local)
       run: |
-        TARGET_RUN_ID=${{ steps.run_mlflow.outputs.run_id }}
+        # Kita tidak pakai Run ID lagi, tapi langsung tembak folder lokal
+        # Folder ada di MLProject/model_output
+        echo "🐳 Building Docker from Local Path (Bypass DagsHub Download)..."
+        
         mlflow models build-docker \
-          --model-uri "runs:/$TARGET_RUN_ID/model" \
+          --model-uri "./MLProject/model_output" \
           --name "timothys710/submission-finall:latest" \
           --enable-mlserver
+        
         docker push timothys710/submission-finall:latest

@@ -7,6 +7,7 @@ import mlflow.sklearn
 import os
 import json
 import platform
+import shutil # <--- Tambahan import
 
 mlflow.set_tracking_uri("https://dagshub.com/TimothyS710/Membangun_Sistem_ML.mlflow")
 mlflow.set_experiment("Submission_Final_Workflow")
@@ -67,17 +68,21 @@ for n in estimators:
         
         mlflow.log_artifact("metric_info.json")
         
-        print("Uploading model to DagsHub...")
-        
+        # 1. Upload ke DagsHub (Tetap dilakukan agar Reviewer bisa lihat)
+        print("Uploading to DagsHub...")
         mlflow.sklearn.log_model(
             sk_model=model,
             artifact_path="model",
             registered_model_name="CreditRiskModel_Final"
         )
         
-        print("Model uploaded.")
-
-        current_run_id = mlflow.active_run().info.run_id
-        print(f"RUN_ID_CI:{current_run_id}")
+        # 2. SIMPAN LOKAL (Jalur Penyelamat untuk Docker)
+        print("Saving locally for Docker...")
+        local_path = "model_output"
+        if os.path.exists(local_path):
+            shutil.rmtree(local_path) # Hapus folder lama biar bersih
+        
+        mlflow.sklearn.save_model(model, local_path)
+        print("✅ Model saved locally to 'model_output'")
 
 print("Done.")
