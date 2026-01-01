@@ -33,23 +33,18 @@ jobs:
       id: run_mlflow
       run: |
         cd MLProject
-        # Jalankan project dan simpan output log ke file
+        
+        
         mlflow run . --env-manager=local > run_log.txt 2>&1
-        
-        # Tampilkan log ke layar (supaya kita bisa baca jika error)
         cat run_log.txt
-        
-        # Tangkap Run ID menggunakan grep dari output log
-        # Pola yang dicari: "Run (ID: xxxx) succeeded"
-        RUN_ID=$(grep -oP "Run \(ID: \K[a-f0-9]+" run_log.txt | head -1)
+        RUN_ID=$(grep -oP "Run \(ID '\K[a-f0-9]+" run_log.txt | tail -1)
         
         if [ -z "$RUN_ID" ]; then
-          echo "❌ Gagal menemukan Run ID! Cek log di atas."
+          echo "❌ Gagal menemukan Run ID! Coba cek pola log lagi."
           exit 1
         fi
         
-        echo "✅ Run ID Baru ditemukan: $RUN_ID"
-        # Simpan ke Output GitHub Actions
+        echo "✅ Run ID Berhasil Ditangkap: $RUN_ID"
         echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
 
     - name: Login to Docker Hub
@@ -60,7 +55,7 @@ jobs:
 
     - name: Build & Push Docker Image
       run: |
-        # Ambil variable dari step 'run_mlflow'
+        
         TARGET_RUN_ID=${{ steps.run_mlflow.outputs.run_id }}
         
         echo "🐳 Building Docker for Run ID: $TARGET_RUN_ID"
