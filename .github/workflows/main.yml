@@ -29,29 +29,32 @@ jobs:
       run: |
         pip install mlflow dagshub pandas scikit-learn
 
-    # --- BAGIAN INI YANG DIUBAH AGAR AMAN ---
-    - name: Run Training Script (Direct Python)
+    - name: Run Training Script
       id: run_mlflow
       run: |
         cd MLProject
-        
-        # 1. Jalankan Python langsung (Bukan 'mlflow run')
-        # Ini menjamin artifact terupload sempurna
         python modelling.py > run_log.txt 2>&1
-        
-        # 2. Tampilkan log
         cat run_log.txt
-        
-        # 3. Tangkap ID dari print khusus 'RUN_ID_CI:' yang ada di modelling.py
         RUN_ID=$(grep -oP "RUN_ID_CI:\K[a-f0-9]+" run_log.txt | tail -1)
         
         if [ -z "$RUN_ID" ]; then
-          echo "❌ Gagal menemukan Run ID!"
+          echo "Failed to find Run ID"
           exit 1
         fi
         
-        echo "✅ Run ID Berhasil Ditangkap: $RUN_ID"
+        echo "Run ID found: $RUN_ID"
         echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+
+    - name: Wait for DagsHub Sync
+      run: |
+        echo "Waiting 30s for artifact propagation..."
+        sleep 30
+
+    - name: Verify Artifacts Existence
+      env:
+        RUN_ID: ${{ steps.run_mlflow.outputs.run_id }}
+      run: |
+        mlflow artifacts list --run-id $RUN_ID
 
     - name: Login to Docker Hub
       uses: docker/login-action@v2
@@ -62,12 +65,8 @@ jobs:
     - name: Build & Push Docker Image
       run: |
         TARGET_RUN_ID=${{ steps.run_mlflow.outputs.run_id }}
-        
-        echo "🐳 Building Docker for Run ID: $TARGET_RUN_ID"
-        
         mlflow models build-docker \
           --model-uri "runs:/$TARGET_RUN_ID/model" \
           --name "timothys710/submission-finall:latest" \
           --enable-mlserver
-        
         docker push timothys710/submission-finall:latest
