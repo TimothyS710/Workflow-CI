@@ -1,0 +1,13 @@
+{
+    "model_name": "RandomForest_CreditRisk",
+    "model_version": "v_trees_100",
+    "accuracy": 0.515,
+    "python_version": "3.13.7",
+    "input_features": [
+        "income",
+        "age",
+        "loan_amount",
+        "credit_history"
+    ],
+    "target_column": "approved"
+}
