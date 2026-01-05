@@ -31,6 +31,7 @@ jobs:
 
     - name: Run MLflow Project
       run: |
+        # Masuk ke folder project
         cd MLProject
         mlflow run . --env-manager=local
 
@@ -40,10 +41,12 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build & Push Docker Image
+    - name: Build & Push Docker Image (From Local)
       run: |
+        echo "🐳 Building Docker from Local Path..."
+        
         mlflow models build-docker \
-          --model-uri "./Workflow-CI/MLProject/model_output" \
+          --model-uri "./MLProject/model_output" \
           --name "timothys710/submission-finall:latest" \
           --enable-mlserver
         
