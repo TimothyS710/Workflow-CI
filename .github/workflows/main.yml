@@ -11,7 +11,6 @@ env:
   MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
   DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-  # INI KUNCINYA: Kita tentukan satu alamat pasti untuk output model
   CI_MODEL_OUTPUT: ${{ github.workspace }}/model_output_final
 
 jobs:
@@ -33,13 +32,11 @@ jobs:
 
     - name: Run MLflow Project
       run: |
-        cd MLProject
-        # Script python akan membaca variabel CI_MODEL_OUTPUT dari env di atas
+        cd Workflow-CI
         mlflow run . --env-manager=local
 
     - name: Check Artifacts (Debugging)
       run: |
-        echo "Memeriksa apakah model berhasil disimpan..."
         ls -R ${{ env.CI_MODEL_OUTPUT }}
 
     - name: Login to Docker Hub
@@ -50,11 +47,5 @@ jobs:
 
     - name: Build & Push Docker Image
       run: |
-        echo "🐳 Building Docker from Fixed Path: ${{ env.CI_MODEL_OUTPUT }}"
-        
-        mlflow models build-docker \
-          --model-uri "${{ env.CI_MODEL_OUTPUT }}" \
-          --name "timothys710/submission-finall:latest" \
-          --enable-mlserver
-        
-        docker push timothys710/submission-finall:latest
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/credit-risk-model:latest ./Workflow-CI
+        docker push ${{ secrets.DOCKER_USERNAME }}/credit-risk-model:latest
