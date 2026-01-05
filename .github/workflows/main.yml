@@ -11,6 +11,8 @@ env:
   MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
   DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+  # INI KUNCINYA: Kita tentukan satu alamat pasti untuk output model
+  CI_MODEL_OUTPUT: ${{ github.workspace }}/model_output_final
 
 jobs:
   build-and-deploy:
@@ -31,9 +33,14 @@ jobs:
 
     - name: Run MLflow Project
       run: |
-        # Masuk ke folder project
         cd MLProject
+        # Script python akan membaca variabel CI_MODEL_OUTPUT dari env di atas
         mlflow run . --env-manager=local
+
+    - name: Check Artifacts (Debugging)
+      run: |
+        echo "Memeriksa apakah model berhasil disimpan..."
+        ls -R ${{ env.CI_MODEL_OUTPUT }}
 
     - name: Login to Docker Hub
       uses: docker/login-action@v2
@@ -41,12 +48,12 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build & Push Docker Image (From Local)
+    - name: Build & Push Docker Image
       run: |
-        echo "🐳 Building Docker from Local Path..."
+        echo "🐳 Building Docker from Fixed Path: ${{ env.CI_MODEL_OUTPUT }}"
         
         mlflow models build-docker \
-          --model-uri "./MLProject/model_output" \
+          --model-uri "${{ env.CI_MODEL_OUTPUT }}" \
           --name "timothys710/submission-finall:latest" \
           --enable-mlserver
         
