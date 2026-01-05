@@ -12,22 +12,19 @@ import shutil
 #  KONFIGURASI MLFLOW 
 mlflow.set_tracking_uri("https://dagshub.com/TimothyS710/Membangun_Sistem_ML.mlflow")
 mlflow.set_experiment("Submission_Final_Workflow")
-
 mlflow.sklearn.autolog()
 
 #  SETUP PATH DATASET 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 dataset_path = os.path.join(script_dir, 'credit_risk_preprocessing.csv')
 
-# Cek dataset
 if os.path.exists(dataset_path):
     df = pd.read_csv(dataset_path)
 else:
-    fallback_path = 'credit_risk_preprocessing.csv'
-    if os.path.exists(fallback_path):
-        df = pd.read_csv(fallback_path)
+    if os.path.exists('credit_risk_preprocessing.csv'):
+        df = pd.read_csv('credit_risk_preprocessing.csv')
     else:
-        print("Dataset not found!")
+        print(f"Dataset not found at {dataset_path}")
         exit()
 
 #  PREPROCESSING 
@@ -50,11 +47,9 @@ for n in estimators:
         
         model = RandomForestClassifier(n_estimators=n, random_state=42)
         model.fit(X_train, y_train) 
-        
         acc = accuracy_score(y_test, model.predict(X_test))
         print(f"Accuracy: {acc}")
 
-        # JSON Info
         monitoring_data = {
             "model_name": "RandomForest_CreditRisk",
             "model_version": f"v_trees_{n}",
@@ -70,20 +65,23 @@ for n in estimators:
         mlflow.log_artifact(json_path)
         
         
-        if os.environ.get('GITHUB_ACTIONS') == 'true':
-            workspace_dir = os.environ.get('GITHUB_WORKSPACE')
-            local_path = os.path.join(workspace_dir, "Workflow-CI/MLProject/model_output")
-            print(f"🔧 Mode CI/CD: Menyimpan model ke {local_path}")
+        ci_output_path = os.environ.get('CI_MODEL_OUTPUT')
+        
+        if ci_output_path:
+            
+            local_path = ci_output_path
+            print(f"🔧 Mode CI/CD: Menyimpan model ke jalur khusus: {local_path}")
         else:
             
             local_path = os.path.join(script_dir, "model_output")
-            print(f"💻 Mode Lokal: Menyimpan model ke {local_path}")
+            print(f"💻 Mode Lokal: Menyimpan model ke: {local_path}")
 
-        # Bersihkan folder lama & Simpan
+        # Bersihkan folder jika sudah ada isinya
         if os.path.exists(local_path):
             shutil.rmtree(local_path)
         
+        # Simpan model
         mlflow.sklearn.save_model(model, local_path)
         
-        
+        # Upload ke DagsHub
         mlflow.log_artifacts(local_path, artifact_path="model")
