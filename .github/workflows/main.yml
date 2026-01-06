@@ -32,6 +32,7 @@ jobs:
 
     - name: Run MLflow Project
       run: |
+        cd Workflow-CI/MLProject
         mlflow run . --env-manager=local
 
     - name: Check Artifacts (Debugging)
