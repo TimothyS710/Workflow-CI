@@ -47,5 +47,5 @@ jobs:
 
     - name: Build & Push Docker Image
       run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/credit-risk-model:latest ./Workflow-CI
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/credit-risk-model:latest ./MLProject
         docker push ${{ secrets.DOCKER_USERNAME }}/credit-risk-model:latest
