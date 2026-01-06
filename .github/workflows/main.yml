@@ -28,7 +28,7 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        pip install mlflow dagshub pandas scikit-learn
+        pip install mlflow dagshub pandas scikit-learn setuptools wheel
 
     - name: Run MLflow Project
       run: |
@@ -47,5 +47,9 @@ jobs:
 
     - name: Build & Push Docker Image
       run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/credit-risk-model:latest ./MLProject
+        mlflow models build-docker \
+          --model-uri "${{ env.CI_MODEL_OUTPUT }}" \
+          --name "${{ secrets.DOCKER_USERNAME }}/credit-risk-model:latest" \
+          --enable-mlserver
+        
         docker push ${{ secrets.DOCKER_USERNAME }}/credit-risk-model:latest
