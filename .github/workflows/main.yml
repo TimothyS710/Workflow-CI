@@ -35,7 +35,7 @@ jobs:
         cd MLProject
         mlflow run . --env-manager=local
 
-    - name: Check Artifacts (Debugging)
+    - name: Check Artifacts
       run: |
         ls -R ${{ env.CI_MODEL_OUTPUT }}
 
